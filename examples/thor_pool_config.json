@@ -1,0 +1,202 @@
+{
+    "logging": {
+        "level": "info",
+        "enableConsoleLog": true,
+        "enableConsoleColors": true,
+        // Log file name (full log) - can be null in which case log events are written to console (stdout)
+        "logFile": "core.log",
+        // Log file name for API-requests - can be null in which case log events are written to either main logFile or console (stdout)
+        "apiLogFile": "api.log",
+        // Folder to store log file(s)
+        "logBaseDirectory": "/path/to/logs", // or c:\path\to\logs on Windows
+        // If enabled, separate log file will be stored for each pool as <pool id>.log
+        // in the above specific folder.
+        "perPoolLogFile": false
+    },
+    "banning": {
+        // "integrated" or "iptables" (linux only - not yet implemented)
+        "manager": "integrated",
+        "banOnJunkReceive": true,
+        "banOnInvalidShares": false
+    },
+    "notifications": {
+        "enabled": true,
+        "email": {
+            "host": "smtp.example.com",
+            "port": 587,
+            "user": "user",
+            "password": "password",
+            "fromAddress": "info@yourpool.org",
+            "fromName": "pool support"
+        },
+        "admin": {
+            "enabled": false,
+            "emailAddress": "user@example.com",
+            "notifyBlockFound": true
+        }
+    },
+    // Where to persist shares and blocks to
+    "persistence": {
+        // Persist to postgresql database
+        "postgres": {
+            "host": "127.0.0.1",
+            "port": 5432,
+            "user": "thor",
+            "password": "abc123",
+            "database": "thor"
+        }
+    },
+   "OdinEndpoint": {
+	"host": "http://39.100.147.220",
+	"port": 24570,
+	"contractAddress":"odxDBa7e73812cAa73B2882A0b0D66682aaf412D79f"
+    },
+    // Generate payouts for recorded shares and blocks
+    "paymentProcessing": {
+        "enabled": true,
+        // How often to process payouts, in milliseconds
+        "interval": 300,
+        // Path to a file used to backup shares under emergency conditions, such as
+        // database outage
+        "shareRecoveryFile": "recovered-shares.txt"
+    },
+    // API Settings
+    "api": {
+        "enabled": true,
+        // Binding address (Default: 127.0.0.1)
+        "listenAddress": "127.0.0.1",
+        // Binding port (Default: 4000)
+        "port": 4000,
+        // IP address whitelist for requests to Prometheus Metrics (default 127.0.0.1)
+        "metricsIpWhitelist": [],
+        // Limit rate of requests to API on a per-IP basis
+        "rateLimiting": {
+            "disabled": false, // disable rate-limiting all-together, be careful
+            // override default rate-limit rules, refer to https://github.com/stefanprodan/AspNetCoreRateLimit/wiki/IpRateLimitMiddleware#defining-rate-limit-rules
+            "rules": [
+                {
+                    "Endpoint": "*",
+                    "Period": "1s",
+                    "Limit": 5
+                }
+            ],
+            // List of IP addresses excempt from rate-limiting (default: none)
+            "ipWhitelist": []
+        }
+    },
+    "pools": [
+        {
+            // DON'T change the id after a production pool has begun collecting shares!
+            "id": "thor",
+            "enabled": true,
+            "coin": "thor",
+            // Address to where block rewards are given (pool wallet)
+            "address": "0Tf610535f3bC6Ee6d9808Cd04A0462657A3084C89",
+            // Block rewards go to the configured pool wallet address to later be paid out
+            // to miners, except for a percentage that can go to, for examples,
+            // pool operator(s) as pool fees or or to donations address. Addresses or hashed
+            // public keys can be used. Here is an example of rewards going to the main pool
+            // "op"
+            "rewardRecipients": [
+                {
+                    //pool operator wallet
+					"type": "op",
+                    "address": "0T676aadE138aB424Ae0CbE941D4A5336953462600",
+                    "percentage": 1.5
+                }
+            ],
+            // How often to poll RPC daemons for new blocks, in milliseconds
+            "blockRefreshInterval": 5000,
+            // Some miner apps will consider the pool dead/offline if it doesn't receive
+            // anything new jobs for around a minute, so every time we broadcast jobs,
+            // set a timeout to rebroadcast in this many seconds unless we find a new job.
+            // Set to zero to disable. (Default: 0)
+            "jobRebroadcastTimeout": 10,
+            // Remove workers that haven't been in contact for this many seconds.
+            // Some attackers will create thousands of workers that use up all available
+            // socket connections, usually the workers are zombies and don't submit shares
+            // after connecting. This features detects those and disconnects them.
+            "clientConnectionTimeout": 600,
+            // If a worker is submitting a high threshold of invalid shares, we can
+            // temporarily ban their IP to reduce system/network load.
+            "banning": {
+                "enabled": false,
+                // How many seconds to ban worker for
+                "time": 600,
+                // What percent of invalid shares triggers ban
+                "invalidPercent": 50,
+                // Check invalid percent when this many shares have been submitted
+                "checkThreshold": 50
+            },
+			"DagDir": "ethash",
+            // Each pool can have as many ports for your miners to connect to as you wish.
+            // Each port can be configured to use its own pool difficulty and variable
+            // difficulty settings. 'varDiff' is optional and will only be used for the ports
+            // you configure it for.
+             "ports": {
+				"3072": {
+					"listenAddress": "0.0.0.0",
+					"difficulty": 0.6,
+					"varDiff": {
+						"minDiff": 0.2,
+						"maxDiff": null,
+						"targetTime":120, 
+						"retargetTime": 120,
+						"variancePercent": 30
+					}
+				},
+				"3073": {
+					"listenAddress": "0.0.0.0",
+					"difficulty": 0.6,
+					"varDiff": {
+						"minDiff": 0.2,
+						"maxDiff": null,
+						"targetTime":90, 
+						"retargetTime": 90,
+						"variancePercent": 30
+					}
+				},
+				"3074": {
+					"listenAddress": "0.0.0.0",
+					"difficulty": 0.6,
+					"varDiff": {
+						"minDiff": 0.2,
+						"maxDiff": null,
+						"targetTime":60, 
+						"retargetTime": 60,
+						"variancePercent": 30
+					}
+				}
+			},
+            // Recommended to have at least two daemon instances running in case one drops
+            // out-of-sync or offline. For redundancy, all instances will be polled for
+            // block/transaction updates and be used for submitting blocks. Creating a backup
+            // daemon involves spawning a daemon using the "-datadir=/backup" argument which
+            // creates a new daemon instance with it's own RPC config. For more info on this,
+            // visit: https:// en.bitcoin.it/wiki/Data_directory and
+            // https:// en.bitcoin.it/wiki/Running_bitcoind
+			"daemons": [
+				{
+					"host": "127.0.0.1",
+					"port": 27455,
+					"user": "user",
+					"password": "password"
+				}
+			],
+            // Generate payouts for recorded shares
+
+			"paymentProcessing": {
+				"enabled": true,
+				"minimumPayment": 0.01, //mininal reward amount required to pay to user
+				"minimumPaymentToPaymentId": 5.0,
+				"payoutScheme": "PPLNS",
+				"payoutSchemeConfig": {
+					"factor": 2.0
+				},
+				"coinbasePassword": "1",
+				"keepUncles": false,
+				"keepTransactionFees": false
+			}
+        }
+    ]
+}
